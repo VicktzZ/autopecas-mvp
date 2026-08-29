@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
 import { Peca } from "@/lib/types";
-import { categoriaColors } from "@/lib/badge-colors";
+import { getCategoriaColor } from "@/lib/badge-colors";
 import { cn } from "@/lib/utils";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -56,7 +56,7 @@ export function PecaTable({ pecas, onEdit, onDelete }: PecaTableProps) {
                 </TableCell>
                 <TableCell className="font-medium">{p.nome}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={cn("border-transparent", categoriaColors[p.categoria])}>
+                  <Badge variant="outline" className={cn("border-transparent", getCategoriaColor(p.categoria))}>
                     {p.categoria}
                   </Badge>
                 </TableCell>

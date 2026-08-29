@@ -19,29 +19,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useStore } from "@/context/store-context";
 import { Categoria, Peca } from "@/lib/types";
-
-const categorias: Categoria[] = [
-  "Filtros",
-  "Freios",
-  "Suspensão",
-  "Elétrica",
-  "Motor",
-  "Óleos e Fluidos",
-  "Arrefecimento",
-  "Transmissão",
-];
 
 const emptyForm = {
   sku: "",
   nome: "",
-  categoria: "Filtros" as Categoria,
+  categoria: "" as Categoria,
   marca: "",
   precoCusto: "",
   precoVenda: "",
   quantidade: "",
   estoqueMinimo: "",
   localizacao: "",
+  fornecedorId: "nenhum",
 };
 
 interface PecaFormDialogProps {
@@ -63,15 +54,23 @@ function formFromPeca(peca: Peca | null) {
     quantidade: String(peca.quantidade),
     estoqueMinimo: String(peca.estoqueMinimo),
     localizacao: peca.localizacao,
+    fornecedorId: peca.fornecedorId ?? "nenhum",
   };
 }
 
 export function PecaFormDialog({ open, onOpenChange, peca, onSubmit }: PecaFormDialogProps) {
-  const [form, setForm] = useState(() => formFromPeca(peca));
+  const { fornecedores, categorias } = useStore();
+  const [form, setForm] = useState(() => {
+    const inicial = formFromPeca(peca);
+    return inicial.categoria === "" && categorias.length > 0
+      ? { ...inicial, categoria: categorias[0].nome ?? categorias[0].codigo }
+      : inicial;
+  });
 
   const isValid =
     form.sku.trim() !== "" &&
     form.nome.trim() !== "" &&
+    form.categoria.trim() !== "" &&
     form.marca.trim() !== "" &&
     form.precoCusto !== "" &&
     form.precoVenda !== "" &&
@@ -90,6 +89,7 @@ export function PecaFormDialog({ open, onOpenChange, peca, onSubmit }: PecaFormD
       quantidade: Number(form.quantidade),
       estoqueMinimo: Number(form.estoqueMinimo),
       localizacao: form.localizacao.trim(),
+      fornecedorId: form.fornecedorId === "nenhum" ? undefined : form.fornecedorId,
     });
     onOpenChange(false);
   }
@@ -112,7 +112,13 @@ export function PecaFormDialog({ open, onOpenChange, peca, onSubmit }: PecaFormD
               value={form.sku}
               onChange={(e) => setForm({ ...form, sku: e.target.value })}
               placeholder="FLT-001"
+              disabled={!!peca}
             />
+            {peca && (
+              <span className="text-xs text-muted-foreground">
+                O código do produto não pode ser alterado depois de criado.
+              </span>
+            )}
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="categoria">Categoria</Label>
@@ -125,8 +131,8 @@ export function PecaFormDialog({ open, onOpenChange, peca, onSubmit }: PecaFormD
               </SelectTrigger>
               <SelectContent>
                 {categorias.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
+                  <SelectItem key={c.codigo} value={c.nome ?? c.codigo}>
+                    {c.nome ?? c.codigo}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -204,6 +210,26 @@ export function PecaFormDialog({ open, onOpenChange, peca, onSubmit }: PecaFormD
               value={form.estoqueMinimo}
               onChange={(e) => setForm({ ...form, estoqueMinimo: e.target.value })}
             />
+          </div>
+
+          <div className="col-span-2 grid gap-1.5">
+            <Label htmlFor="fornecedor">Fornecedor</Label>
+            <Select
+              value={form.fornecedorId}
+              onValueChange={(v) => setForm({ ...form, fornecedorId: v ?? "nenhum" })}
+            >
+              <SelectTrigger id="fornecedor" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nenhum">Nenhum</SelectItem>
+                {fornecedores.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>
+                    {f.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

@@ -1,12 +1,15 @@
-export type Categoria =
-  | "Filtros"
-  | "Freios"
-  | "Suspensão"
-  | "Elétrica"
-  | "Motor"
-  | "Óleos e Fluidos"
-  | "Arrefecimento"
-  | "Transmissão";
+// Categorias agora são carregadas dinamicamente da tabela `categorias` no
+// Supabase (13 categorias reais, inferidas dos dados importados), em vez de
+// um enum fixo. Ver useStore().categorias.
+export type Categoria = string;
+
+export interface Fornecedor {
+  id: string;
+  nome: string;
+  contato: string;
+  telefone: string;
+  email?: string;
+}
 
 export interface Peca {
   id: string;
@@ -19,6 +22,15 @@ export interface Peca {
   quantidade: number;
   estoqueMinimo: number;
   localizacao: string;
+  fornecedorId?: string;
+}
+
+export interface Cliente {
+  id: string;
+  nome: string;
+  telefone: string;
+  email?: string;
+  documento?: string;
 }
 
 export interface ItemVenda {
@@ -36,4 +48,5 @@ export interface Venda {
   itens: ItemVenda[];
   total: number;
   formaPagamento: FormaPagamento;
+  clienteId?: string;
 }

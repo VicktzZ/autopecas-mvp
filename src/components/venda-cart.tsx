@@ -22,17 +22,21 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { VendaReceiptDialog } from "@/components/venda-receipt-dialog";
 import { formatCurrency } from "@/lib/format";
-import { FormaPagamento, ItemVenda } from "@/lib/types";
+import { FormaPagamento, ItemVenda, Venda } from "@/lib/types";
 import { Search, Trash2 } from "lucide-react";
 
 const formasPagamento: FormaPagamento[] = ["Dinheiro", "Cartão", "Pix"];
 
 export function VendaCart() {
-  const { pecas, registrarVenda } = useStore();
+  const { pecas, clientes, registrarVenda } = useStore();
   const [busca, setBusca] = useState("");
   const [carrinho, setCarrinho] = useState<ItemVenda[]>([]);
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>("Dinheiro");
+  const [clienteId, setClienteId] = useState<string>("nenhum");
+  const [vendaFinalizada, setVendaFinalizada] = useState<Venda | null>(null);
+  const [finalizando, setFinalizando] = useState(false);
 
   const resultados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -93,14 +97,22 @@ export function VendaCart() {
     setCarrinho((prev) => prev.filter((i) => i.pecaId !== pecaId));
   }
 
-  function handleFinalizar() {
-    const resultado = registrarVenda(carrinho, formaPagamento);
+  async function handleFinalizar() {
+    setFinalizando(true);
+    const resultado = await registrarVenda(
+      carrinho,
+      formaPagamento,
+      clienteId === "nenhum" ? undefined : clienteId
+    );
+    setFinalizando(false);
     if (!resultado.ok) {
       toast.error(resultado.erro);
       return;
     }
     toast.success(`Venda finalizada: ${formatCurrency(total)}`);
     setCarrinho([]);
+    setClienteId("nenhum");
+    setVendaFinalizada(resultado.venda);
   }
 
   return (
@@ -207,6 +219,23 @@ export function VendaCart() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Cliente (opcional)</span>
+            <Select value={clienteId} onValueChange={(v) => setClienteId(v ?? "nenhum")}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nenhum">Não informado</SelectItem>
+                {clientes.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium">Forma de Pagamento</span>
             <Select
               value={formaPagamento}
@@ -235,13 +264,18 @@ export function VendaCart() {
           <Button
             size="lg"
             className="w-full"
-            disabled={carrinho.length === 0}
+            disabled={carrinho.length === 0 || finalizando}
             onClick={handleFinalizar}
           >
-            Finalizar Venda
+            {finalizando ? "Finalizando..." : "Finalizar Venda"}
           </Button>
         </CardContent>
       </Card>
+
+      <VendaReceiptDialog
+        venda={vendaFinalizada}
+        onOpenChange={(open) => !open && setVendaFinalizada(null)}
+      />
     </div>
   );
 }

@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { categoriaColors, formaPagamentoColors } from "@/lib/badge-colors";
+import { SalesTrendChart } from "@/components/charts/sales-trend-chart";
+import { getCategoriaColor, formaPagamentoColors } from "@/lib/badge-colors";
 import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
@@ -112,6 +113,15 @@ export default function DashboardPage() {
         />
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Vendas nos Últimos 30 Dias</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SalesTrendChart vendas={vendas} height={200} />
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -138,7 +148,7 @@ export default function DashboardPage() {
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">{p.nome}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={cn("border-transparent", categoriaColors[p.categoria])}>
+                          <Badge variant="outline" className={cn("border-transparent", getCategoriaColor(p.categoria))}>
                             {p.categoria}
                           </Badge>
                         </TableCell>

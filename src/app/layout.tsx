@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Sora, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { StoreProvider } from "@/context/store-context";
-import { SidebarNav } from "@/components/sidebar-nav";
+import { AppShell } from "@/components/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 
 const fontSans = Plus_Jakarta_Sans({
@@ -30,18 +31,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
+      suppressHydrationWarning
       className={`${fontSans.variable} ${fontHeading.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <StoreProvider>
-          <div className="flex min-h-screen">
-            <SidebarNav />
-            <main className="flex-1 min-w-0 overflow-x-hidden p-6 md:p-8">
-              {children}
-            </main>
-          </div>
-          <Toaster />
-        </StoreProvider>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <StoreProvider>
+            <AppShell>{children}</AppShell>
+            <Toaster />
+          </StoreProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

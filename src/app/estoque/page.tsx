@@ -24,24 +24,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Categoria, Peca } from "@/lib/types";
-import { Plus, Search } from "lucide-react";
+import { Peca } from "@/lib/types";
+import { Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
-const categorias: Categoria[] = [
-  "Filtros",
-  "Freios",
-  "Suspensão",
-  "Elétrica",
-  "Motor",
-  "Óleos e Fluidos",
-  "Arrefecimento",
-  "Transmissão",
-];
+const ITENS_POR_PAGINA = 50;
 
 export default function EstoquePage() {
-  const { pecas, addPeca, updatePeca, deletePeca } = useStore();
+  const { pecas, categorias, addPeca, updatePeca, deletePeca } = useStore();
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState<string>("todas");
+  const [pagina, setPagina] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPeca, setEditingPeca] = useState<Peca | null>(null);
   const [deletingPeca, setDeletingPeca] = useState<Peca | null>(null);
@@ -58,6 +50,23 @@ export default function EstoquePage() {
     });
   }, [pecas, busca, categoria]);
 
+  const totalPaginas = Math.max(1, Math.ceil(pecasFiltradas.length / ITENS_POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const pecasPagina = pecasFiltradas.slice(
+    (paginaAtual - 1) * ITENS_POR_PAGINA,
+    paginaAtual * ITENS_POR_PAGINA
+  );
+
+  function handleBuscaChange(valor: string) {
+    setBusca(valor);
+    setPagina(1);
+  }
+
+  function handleCategoriaChange(valor: string) {
+    setCategoria(valor);
+    setPagina(1);
+  }
+
   function handleNovaPeca() {
     setEditingPeca(null);
     setDialogOpen(true);
@@ -68,19 +77,24 @@ export default function EstoquePage() {
     setDialogOpen(true);
   }
 
-  function handleSubmit(dados: Omit<Peca, "id">) {
-    if (editingPeca) {
-      updatePeca(editingPeca.id, dados);
-      toast.success(`Peça "${dados.nome}" atualizada.`);
-    } else {
-      addPeca(dados);
-      toast.success(`Peça "${dados.nome}" cadastrada.`);
+  async function handleSubmit(dados: Omit<Peca, "id">) {
+    const resultado = editingPeca
+      ? await updatePeca(editingPeca.id, dados)
+      : await addPeca(dados);
+    if (!resultado.ok) {
+      toast.error(resultado.erro);
+      return;
     }
+    toast.success(editingPeca ? `Peça "${dados.nome}" atualizada.` : `Peça "${dados.nome}" cadastrada.`);
   }
 
-  function handleConfirmDelete() {
+  async function handleConfirmDelete() {
     if (!deletingPeca) return;
-    deletePeca(deletingPeca.id);
+    const resultado = await deletePeca(deletingPeca.id);
+    if (!resultado.ok) {
+      toast.error(resultado.erro);
+      return;
+    }
     toast.success(`Peça "${deletingPeca.nome}" removida.`);
     setDeletingPeca(null);
   }
@@ -107,25 +121,58 @@ export default function EstoquePage() {
             placeholder="Buscar por nome ou SKU..."
             className="pl-8"
             value={busca}
-            onChange={(e) => setBusca(e.target.value)}
+            onChange={(e) => handleBuscaChange(e.target.value)}
           />
         </div>
-        <Select value={categoria} onValueChange={(v) => setCategoria(v ?? "todas")}>
+        <Select value={categoria} onValueChange={(v) => handleCategoriaChange(v ?? "todas")}>
           <SelectTrigger className="w-full sm:w-56">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas as categorias</SelectItem>
             {categorias.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
+              <SelectItem key={c.codigo} value={c.nome ?? c.codigo}>
+                {c.nome ?? c.codigo}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      <PecaTable pecas={pecasFiltradas} onEdit={handleEditar} onDelete={setDeletingPeca} />
+      <PecaTable pecas={pecasPagina} onEdit={handleEditar} onDelete={setDeletingPeca} />
+
+      {pecasFiltradas.length > 0 && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            Mostrando {(paginaAtual - 1) * ITENS_POR_PAGINA + 1}–
+            {Math.min(paginaAtual * ITENS_POR_PAGINA, pecasFiltradas.length)} de{" "}
+            {pecasFiltradas.length} peças
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={paginaAtual <= 1}
+              onClick={() => setPagina((p) => Math.max(1, p - 1))}
+            >
+              <ChevronLeft className="size-4" />
+              Anterior
+            </Button>
+            <span>
+              Página {paginaAtual} de {totalPaginas}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={paginaAtual >= totalPaginas}
+              onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+            >
+              Próxima
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <PecaFormDialog
         key={dialogOpen ? editingPeca?.id ?? "nova" : "fechado"}
